@@ -1,0 +1,95 @@
+clear
+units real
+boundary p p p
+atom_style full
+
+
+neighbor 2.0 bin
+
+
+# ------------------------ MOF-FF FORCE FIELD ------------------------------
+
+
+pair_style buck6d/coul/gauss/long     0.9000     0.9000    12.0000
+box tilt large
+dihedral_style opls
+improper_style inversion/harmonic
+read_data 		C4_222.data
+include			parameters.dat.txt
+
+
+change_box all  triclinic
+kspace_style pppm      1e-06
+# ------------------------ MOF-FF FORCE FIELD END --------------------------
+
+
+min_style		cg
+minimize		0.0 1.0e-8 1000 10000
+
+velocity     	all create 350 3204550 dist gaussian mom yes rot no
+
+#-----------------------------------------------------------------------------
+variable        N      equal step
+variable        T      equal temp
+variable		R		equal 0.00198722
+variable		sysvol		equal vol
+variable		sysmass		equal mass(all)/6.0221367e+23
+variable		sysdensity	equal v_sysmass/v_sysvol/1.0e-24
+variable		coulomb		equal ecoul+elong
+variable		etotal		equal etotal
+variable		pe		equal pe
+variable		ke		equal ke
+variable		evdwl		equal evdwl
+variable		epair		equal epair
+variable		ebond		equal ebond
+variable		eangle		equal eangle
+variable		edihed		equal edihed
+variable		eimp		equal eimp
+variable		lx		equal lx
+variable		ly		equal ly
+variable		lz		equal lz
+variable		Nthermo		equal 0
+variable		cella		equal lx
+variable		cellb		equal sqrt(ly*ly+xy*xy)
+variable		cellc		equal sqrt(lz*lz+xz*xz+yz*yz)
+variable		cellalpha	equal acos((xy*xz+ly*yz)/(v_cellb*v_cellc))
+variable		cellbeta	equal acos(xz/v_cellc)
+variable		cellgamma	equal acos(xy/v_cellb)
+variable		p		equal press
+variable		pxx		equal pxx
+variable		pyy		equal pyy
+variable		pzz		equal pzz
+variable		pyz		equal pyz
+variable		pxz		equal pxz
+variable		pxy		equal pxy
+variable		sxx		equal -pxx
+variable		syy		equal -pyy
+variable		szz		equal -pzz
+variable		syz		equal -pyz
+variable		sxz		equal -pxz
+variable		sxy		equal -pxy
+variable		enthalpy    equal enthalpy
+variable		fmax		equal fmax
+variable	        fnorm		equal fnorm
+variable		time equal step*dt+0.000001
+variable		surfacetension equal 0.5*v_lz*(0.5*(v_sxx+v_syy)-v_szz)
+
+
+#-------------------------------------------------------------------------------
+timestep	    1
+thermo_style custom step evdwl ebond eangle edihed eimp pe ke etotal temp press vol v_coulomb enthalpy spcpu
+thermo 1000
+
+variable        TEMP        equal 350
+
+fix             1 all npt temp  ${TEMP} ${TEMP} 100  tri  0 0 1000
+run		100000
+write_data      data_1_relax.*
+unfix 1
+
+fix             1 all npt temp  ${TEMP} ${TEMP} 100  tri  2000 2000 1000
+run		500000
+write_data      data_2_200MPa.*
+unfix 1
+
+
